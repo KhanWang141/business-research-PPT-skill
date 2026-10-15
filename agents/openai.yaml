@@ -1,4 +1,4 @@
 interface:
-  display_name: "商业研究演示"
-  short_description: "从证据核验与逐页叙事，到共源生成可编辑 HTML 和原生图表 PPTX"
-  default_prompt: "使用 $business-research-deck，基于我的研究资料和参考稿制作有证据、可编辑的商业提案。"
+  display_name: "商业研究交互演示"
+  short_description: "核验证据与品牌国家设计，先看风格和两页样张，再交付交互 HTML 与原生 PPTX"
+  default_prompt: "使用 $business-research-deck，根据我的商业研究资料和品牌国家要求，先做风格预览及两页可编辑样张，确认后制作 HTML 与原生 PPTX。"

@@ -10,6 +10,12 @@
 
 核验状态使用 pending / needs_review / verified / demo。实际/估计/预测描述数据性质，与核验状态分开。经核验的预测仍需保留 forecast 标签。
 
+## 接收 Excel/CSV
+
+接收 chart_data.csv/xlsx 的 slide_id、chart_id、category、series、value、unit、year、source_id、status 等列；建立或保留稳定 record_id，映射到规范化 JSON，不让两个格式独立维护。来源台账可含 slide_id，但同一证据仍有稳定 source_id 和具体定位。
+
+按来源元数据分别记录 actual、estimate、forecast，展示时可用 E/F 加文字图例；不能把“2025”自动视为实际。SOP 默认显示整数或一位小数，保留未舍入原值和公式，不因样式调整丢失阈值、分母或预测限定。
+
 ## 计算与比较
 
 - 增长率 = (本期 / 基期 − 1) × 100%；基期为 0 不照算。
