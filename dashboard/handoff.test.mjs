@@ -1,0 +1,44 @@
+import assert from 'node:assert/strict';
+import fs from 'node:fs/promises';
+import os from 'node:os';
+import path from 'node:path';
+import {once} from 'node:events';
+import http from 'node:http';
+import {newProject,validateProject} from './model.mjs';
+import {buildFancyPrompt,codexLink} from './handoff.mjs';
+import {createHandoffServer} from './serve.mjs';
+
+const project=newProject();project.brief.name='测试 <script> 数据';project.handoff.notes='增大标题并保留数值';
+assert.match(buildFancyPrompt(project),/增大标题并保留数值/);assert.match(buildFancyPrompt(project),/原生chart/);assert.match(buildFancyPrompt(project),/不是PNG/);
+const link=new URL(codexLink('/tmp/中文 项目 & case'));
+assert.equal(link.protocol,'codex:');assert.equal(link.hostname,'new');assert.equal(link.searchParams.get('path'),'/tmp/中文 项目 & case');assert.match(link.searchParams.get('prompt'),/handoff.md/);
+const legacy=structuredClone(project);delete legacy.handoff;assert.equal(validateProject(legacy).handoff.scope,'samples');
+const exportRoot=await fs.mkdtemp(path.join(os.tmpdir(),'ppt-handoff-test-'));
+const server=createHandoffServer({exportRoot});server.listen(0,'127.0.0.1');await once(server,'listening');
+const base=`http://127.0.0.1:${server.address().port}`;
+try {
+ const health=await (await fetch(base+'/api/health')).json();assert.equal(health.service,'ppt-codex-handoff/v1');
+ const headers={'Content-Type':'application/json',Origin:base,'X-Handoff-Token':health.token};
+ const post=(p,overrides={})=>fetch(base+'/api/handoffs',{method:'POST',headers:{...headers,...overrides},body:JSON.stringify({project:p})});
+ assert.equal((await post({...project,schema:'bad'})).status,400);
+ assert.equal((await post(project,{'X-Handoff-Token':'wrong'})).status,403);
+ assert.equal((await post(project,{Origin:'https://example.com'})).status,403);
+ project.handoff.scope='full';assert.equal((await post(project)).status,400);project.handoff.scope='samples';
+ project.handoff.prompt='用户修改后的设计要求：保留所有数据。';
+ const res=await post(project);assert.equal(res.status,201);const bundle=await res.json();
+ assert.equal(bundle.revision,project.revision);assert.ok(bundle.workspace.startsWith(exportRoot+path.sep));
+ assert.equal(new URL(bundle.codexUrl).searchParams.get('path'),bundle.workspace);
+ assert.equal(JSON.parse(await fs.readFile(path.join(bundle.workspace,'project.json'),'utf8')).brief.name,project.brief.name);
+ assert.equal(await fs.readFile(path.join(bundle.workspace,'fancy-prompt.md'),'utf8'),project.handoff.prompt);
+ assert.equal(JSON.parse(await fs.readFile(path.join(bundle.workspace,'bundle.json'),'utf8')).generation,'not_started');
+ assert.match(await fs.readFile(path.join(bundle.workspace,'handoff.md'),'utf8'),/前两页/);
+ assert.match(await fs.readFile(path.join(bundle.workspace,'SKILL.md'),'utf8'),/business-research-deck/);
+ assert.match(await fs.readFile(path.join(bundle.workspace,'references','production.md'),'utf8'),/PPTX/);
+ const draft=await (await fetch(base+bundle.draftUrl)).text();assert.match(draft,/&lt;script&gt;/);assert.ok(!draft.includes('测试 <script>'));
+ assert.equal((await fetch(base+'/dashboard/exports/handoffs/foo/project.json')).status,404);
+ assert.equal((await fetch(base+'/dashboard/serve.mjs')).status,404);
+ assert.equal((await fetch(base+'/dashboard/app.mjs')).status,200);
+ const badHost=await new Promise((resolve,reject)=>{const req=http.get(base+'/api/health',{headers:{Host:'evil.test'}},res=>{res.resume();resolve(res.statusCode);});req.on('error',reject);});assert.equal(badHost,403);
+ const oversized=await fetch(base+'/api/handoffs',{method:'POST',headers,body:' '.repeat(2*1024*1024+1)});assert.equal(oversized.status,413);
+ console.log('PASS: prompt contract, legacy project, encoded deep link, self-contained versioned bundle, draft escaping, no model execution, same-origin/token/host guards, static allowlist, size limit.');
+} finally {await new Promise(resolve=>server.close(resolve));await fs.rm(exportRoot,{recursive:true,force:true});}
