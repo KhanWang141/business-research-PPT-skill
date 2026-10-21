@@ -1,0 +1,21 @@
+import assert from 'node:assert/strict';
+import fs from 'node:fs';
+import vm from 'node:vm';
+import {newProject,newPage,verifyRecord,reviewed,releaseIssues,validateProject,importCSV,parseCSV,invalidate,taskPrompt} from './model.mjs';
+import {chartSVG,esc} from './chart.mjs';
+const p=newProject(),page=p.pages[0],r=page.records[0];
+assert.ok(releaseIssues(p).length);assert.match(chartSVG(page),/DATA NEEDED/);assert.equal(r.value,null);
+p.brief.owner='取数人';p.sources.push({id:'S1',name:'原始表',location:'data.xlsx / Sheet1!B2',date:'2026-10-21'});page.unit='门店';page.year='2025';Object.assign(r,{value:10,sourceId:'S1'});
+assert.throws(()=>verifyRecord(p,page,r,'取数人','核对原值'),/不同/);verifyRecord(p,page,r,'复核人','已核对原表B2');assert.ok(reviewed(p,page,r));assert.ok(reviewed(validateProject(p),validateProject(p).pages[0],validateProject(p).pages[0].records[0]));
+r.value=20;assert.equal(reviewed(p,page,r),false);invalidate(r);assert.equal(r.status,'needs_review');
+verifyRecord(p,page,r,'复核人','核对新版本');p.sources[0].location='不同证据';assert.equal(reviewed(p,page,r),false);assert.equal(validateProject(p).pages[0].records[0].status,'needs_review');
+assert.throws(()=>validateProject({...p,schema:'bad'}),/版本/);assert.throws(()=>validateProject({...p,pages:[{...page,chartType:'pie'}]}),/柱条图/);
+assert.deepEqual(parseCSV('a,b\r\n"x,y","line\nnext"\r\n'),[['a','b'],['x,y','line\nnext']]);assert.throws(()=>parseCSV('a\n"bad'),/闭合/);
+const csv='page,category,series,value,unit,year,source_id,kind\n1,"分类,一",主系列,0,门店,2025,S1,actual\n1,分类二,主系列,,门店,2025,S1,forecast\n';const imported=importCSV(p,csv);assert.equal(imported.pages[0].records[0].value,0);assert.equal(imported.pages[0].records[1].value,null);assert.equal(imported.pages[0].records[0].status,'pending');assert.throws(()=>importCSV(p,csv.replace('S1','MISSING')),/尚未登记/);assert.throws(()=>importCSV(p,csv.replace('2025,S1,forecast','2024,S1,forecast')),/统计期/);
+const bad=structuredClone(imported);bad.pages[0].records[0].value=Infinity;assert.throws(()=>validateProject(bad),/有限数字/);bad.pages[0].records[0].value=1;bad.pages[0].records[0].category='<img src=x onerror=alert(1)>';assert.ok(!chartSVG(bad.pages[0]).includes('<img'));assert.match(chartSVG(bad.pages[0]),/&lt;img/);
+assert.match(taskPrompt(p),/先制作前两页/);assert.match(taskPrompt(p),/原生图表/);assert.equal(p.pages.length,2);assert.ok(newPage().records.every(x=>x.value===null));
+console.log('PASS: empty states, independent review, invalidation, save/import, CSV edge cases, schema validation, text escaping, Codex task contract.');
+
+const app=fs.readFileSync(new URL('./app.mjs',import.meta.url),'utf8');let html='';const start=app.indexOf('function draftHTML(){'),end=app.indexOf("$('#save-project')",start);const context=vm.createContext({project:newProject(),esc,chartSVG,download:(name,body)=>{html=body;},notify:()=>{}});vm.runInContext(app.slice(start,end)+'draftHTML();',context);const script=html.match(/<script>([\s\S]*?)<\/script>/);assert.ok(script,'Exported HTML must close its script element');new vm.Script(script[1]);assert.match(html,/草稿/);assert.match(html,/DATA NEEDED/);
+const percentPage=newPage();percentPage.chartType='percent';percentPage.records[0].value=1;assert.match(chartSVG(percentPage),/DATA NEEDED/);
+console.log('PASS: exported draft script, explicit draft labels, incomplete percent chart guard.');
