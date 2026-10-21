@@ -3,6 +3,7 @@ import fs from 'node:fs';
 import vm from 'node:vm';
 import {newProject,newPage,verifyRecord,reviewed,releaseIssues,validateProject,importCSV,parseCSV,invalidate,taskPrompt} from './model.mjs';
 import {chartSVG,esc} from './chart.mjs';
+import {buildDraftHTML} from './draft.mjs';
 const p=newProject(),page=p.pages[0],r=page.records[0];
 assert.ok(releaseIssues(p).length);assert.match(chartSVG(page),/DATA NEEDED/);assert.equal(r.value,null);
 p.brief.owner='取数人';p.sources.push({id:'S1',name:'原始表',location:'data.xlsx / Sheet1!B2',date:'2026-10-21'});page.unit='门店';page.year='2025';Object.assign(r,{value:10,sourceId:'S1'});
@@ -16,7 +17,7 @@ const bad=structuredClone(imported);bad.pages[0].records[0].value=Infinity;asser
 assert.match(taskPrompt(p),/先制作前两页/);assert.match(taskPrompt(p),/原生图表/);assert.equal(p.pages.length,2);assert.ok(newPage().records.every(x=>x.value===null));
 console.log('PASS: empty states, independent review, invalidation, save/import, CSV edge cases, schema validation, text escaping, Codex task contract.');
 
-const app=fs.readFileSync(new URL('./app.mjs',import.meta.url),'utf8');let html='';const start=app.indexOf('function draftHTML(){'),end=app.indexOf("$('#save-project')",start);const context=vm.createContext({project:newProject(),esc,chartSVG,download:(name,body)=>{html=body;},notify:()=>{}});vm.runInContext(app.slice(start,end)+'draftHTML();',context);const script=html.match(/<script>([\s\S]*?)<\/script>/);assert.ok(script,'Exported HTML must close its script element');new vm.Script(script[1]);assert.match(html,/草稿/);assert.match(html,/DATA NEEDED/);
+const html=buildDraftHTML(newProject());const script=html.match(/<script>([\s\S]*?)<\/script>/);assert.ok(script,'Exported HTML must close its script element');new vm.Script(script[1]);assert.match(html,/草稿/);assert.match(html,/DATA NEEDED/);
 const percentPage=newPage();percentPage.chartType='percent';percentPage.records[0].value=1;assert.match(chartSVG(percentPage),/DATA NEEDED/);
 console.log('PASS: exported draft script, explicit draft labels, incomplete percent chart guard.');
 
