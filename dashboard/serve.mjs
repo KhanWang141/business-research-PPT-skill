@@ -4,17 +4,17 @@ import path from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {randomBytes} from 'node:crypto';
 import {validateProject} from './model.mjs';
-import {buildDraftHTML} from './draft.mjs';
-import {buildFancyPrompt,codexLink,handoffMarkdown} from './handoff.mjs';
+import {MAX_JSON} from './assets.mjs';
+import {buildFancyPrompt,codexLink,handoffMarkdown,assetPath} from './handoff.mjs';
 
 const dashboard=fileURLToPath(new URL('.',import.meta.url));
 const repository=path.dirname(dashboard);
 const references=['sop.md','evidence.md','visual-design.md','interactive-html.md','production.md','templates.md','case-study.md'];
-const publicFiles=new Set(['index.html','styles.css','app.mjs','model.mjs','chart.mjs','draft.mjs','handoff.mjs','README.md']);
+const publicFiles=new Set(['index.html','styles.css','app.mjs','model.mjs','chart.mjs','draft.mjs','handoff.mjs','README.md','assets.mjs']);
 const types={'.html':'text/html; charset=utf-8','.css':'text/css; charset=utf-8','.mjs':'text/javascript; charset=utf-8','.md':'text/plain; charset=utf-8'};
 const csvCell=v=>'"'+String(v??'').replaceAll('"','""')+'"';
 export function createHandoffServer({exportRoot=path.join(dashboard,'exports','handoffs')}={}) {
-  const token=randomBytes(32).toString('hex'),drafts=new Map();
+  const token=randomBytes(32).toString('hex');
   const server=http.createServer(async(req,res)=>{
     const json=(code,data)=>{res.writeHead(code,{'Content-Type':'application/json; charset=utf-8','Cache-Control':'no-store'});res.end(JSON.stringify(data));};
     const origin=`http://127.0.0.1:${server.address().port}`;
@@ -28,30 +28,28 @@ export function createHandoffServer({exportRoot=path.join(dashboard,'exports','h
       if(req.method==='POST'&&url.pathname==='/api/handoffs'){
         if(req.headers.origin!==origin||req.headers['x-handoff-token']!==token)return json(403,{error:'请从本地看板准备项目包'});
         if(!req.headers['content-type']?.startsWith('application/json'))return json(415,{error:'仅接受JSON'});
-        let size=0,chunks=[];for await(const chunk of req){size+=chunk.length;if(size>2*1024*1024){json(413,{error:'项目不能超过2MB'});return;}chunks.push(chunk);}
+        let size=0,chunks=[];for await(const chunk of req){size+=chunk.length;if(size>MAX_JSON){json(413,{error:'项目包不能超过58MB（附件合计上限40MB）'});return;}chunks.push(chunk);}
         const body=JSON.parse(Buffer.concat(chunks).toString('utf8'));let project;
         try{project=validateProject(body.project);}catch(error){return json(400,{error:error.message});}
-        if(project.handoff.scope==='full'&&!project.design.sampleApproved)return json(400,{error:'全稿制作须先确认当前样张'});
         const id=new Date().toISOString().replace(/[:.]/g,'-')+'-'+randomBytes(6).toString('hex');
         const workspace=path.join(exportRoot,id);
         await fs.mkdir(path.join(workspace,'references'),{recursive:true});
         try {
           await fs.writeFile(path.join(workspace,'project.json'),JSON.stringify(project,null,2));
-          await fs.writeFile(path.join(workspace,'draft.html'),buildDraftHTML(project));
+          await fs.mkdir(path.join(workspace,'assets'));
+          for(const a of project.attachments)await fs.writeFile(path.join(workspace,assetPath(a)),Buffer.from(a.data,'base64'));
+          await fs.writeFile(path.join(workspace,'assets.json'),JSON.stringify(project.attachments.map(({data,...a})=>({...a,path:assetPath(a)})),null,2));
           await fs.writeFile(path.join(workspace,'fancy-prompt.md'),project.handoff.prompt||buildFancyPrompt(project));
           await fs.writeFile(path.join(workspace,'handoff.md'),handoffMarkdown(project));
           await fs.writeFile(path.join(workspace,'sources.csv'),'\uFEFF'+[['source_id','name','location','extracted_at'],...project.sources.map(s=>[s.id,s.name,s.location,s.date])].map(r=>r.map(csvCell).join(',')).join('\r\n'));
           await fs.copyFile(path.join(repository,'SKILL.md'),path.join(workspace,'SKILL.md'));
           for(const name of references)await fs.copyFile(path.join(repository,'references',name),path.join(workspace,'references',name));
-          await fs.writeFile(path.join(workspace,'bundle.json'),JSON.stringify({schema:'ppt-codex-handoff/v1',revision:project.revision,createdAt:new Date().toISOString(),generation:'not_started',rawEvidenceCopied:false},null,2));
+          await fs.writeFile(path.join(workspace,'bundle.json'),JSON.stringify({schema:'ppt-codex-handoff/v1',revision:project.revision,createdAt:new Date().toISOString(),generation:'not_started',rawEvidenceCopied:false,uploadedAssetsCopied:true,attachmentCount:project.attachments.length,outputFormat:'interactive-html'},null,2));
         }catch(error){await fs.rm(workspace,{recursive:true,force:true});throw error;}
-        drafts.set(id,path.join(workspace,'draft.html'));
-        return json(201,{revision:project.revision,workspace,codexUrl:codexLink(workspace),draftUrl:`/handoffs/${id}/draft.html`});
+        return json(201,{revision:project.revision,workspace,codexUrl:codexLink(workspace)});
       }
-      const draftMatch=url.pathname.match(/^\/handoffs\/([\w-]+)\/draft\.html$/);
       let file;
-      if(req.method==='GET'&&draftMatch&&drafts.has(draftMatch[1]))file=drafts.get(draftMatch[1]);
-      else if(req.method==='GET'&&url.pathname==='/') {res.writeHead(302,{Location:'/dashboard/'});return res.end();}
+      if(req.method==='GET'&&url.pathname==='/') {res.writeHead(302,{Location:'/dashboard/'});return res.end();}
       else if(req.method==='GET'&&(url.pathname==='/dashboard/'||url.pathname==='/dashboard'))file=path.join(dashboard,'index.html');
       else if(req.method==='GET'&&url.pathname.startsWith('/dashboard/')){const name=url.pathname.slice(11);if(publicFiles.has(name))file=path.join(dashboard,name);}
       if(!file)return json(404,{error:'未找到；请使用本地连接服务与看板入口'});

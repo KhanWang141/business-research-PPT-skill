@@ -18,7 +18,7 @@ HTML 采用固定 1920×1080、16:9 舞台，支持切页、克制的入场动�
 
 ## 可视化看板
 
-仓库现包含 [AI 演示工作台](dashboard/README.md)：IBG 风格的本地工作区，默认空白项目，可登记来源、导入 CSV、编辑柱条图与主题、保存项目 JSON，生成HTML初稿和可编辑的Fancy优化提示词，准备本机项目包并直接跳转Codex。
+仓库包含 [AI 演示工作台](dashboard/README.md)，只保留「项目简报」和「交付给 Codex」两个板块。填写需求、上传初步 PPT/PDF 与照片后，准备包含实际附件的本机项目包，交给 Codex 基于初稿和简报渲染交互式 HTML 全稿。无需逐页录入或先确认两页样张。
 
 在本仓库根目录运行：
 
@@ -26,7 +26,7 @@ HTML 采用固定 1920×1080、16:9 舞台，支持切页、克制的入场动�
 node dashboard/serve.mjs --port 8001
 ```
 
-打开 `http://127.0.0.1:8001/dashboard/`。无需安装前端依赖或配置 API 密钥。详细步骤见 [看板使用说明](dashboard/README.md)。实际 AI 制作与原生 PPTX 生成由 Codex 执行；看板中的 HTML 草稿下载不是正式 PPTX 导出。项目平时在浏览器缓存；点击准备项目包时写入本机dashboard/exports/handoffs/，务必另存JSON；不将业务文件提交到公开仓库。
+打开 `http://127.0.0.1:8001/dashboard/`。无需安装前端依赖或配置 API 密钥。照片可预览、填写用途；简报和附件在浏览器本地保存，也可下载项目 JSON 完整备份与恢复。点击准备项目包时，材料写入 `dashboard/exports/handoffs/`，实际 HTML 制作在 Codex 中执行。不要将业务材料提交到公开仓库。
 
 ## 文件
 

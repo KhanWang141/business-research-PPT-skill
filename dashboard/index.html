@@ -1,9 +1,40 @@
 <!doctype html>
-<html lang="zh-CN"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="description" content="商业研究演示工作台：项目规划、证据登记、柱条图编辑、风格选择与Codex任务交接。"><title>AI 演示工作台 · IBG Food</title><link rel="stylesheet" href="styles.css"><script type="module" src="app.mjs"></script></head>
-<body><header class="topbar"><a class="brand" href="#brief"><span class="brand-mark" aria-hidden="true">IBG</span><span>Food竞争分析中心</span></a><nav aria-label="工作台导航"><a href="#brief">项目简报</a><a href="#workflow">制作流程</a><a href="#help">使用说明</a><span class="nav-current">AI 演示</span></nav></header>
-<main><div class="breadcrumb">知识库 <span>›</span> AI 演示工作台</div><div class="kicker">IBG FOOD / PRESENTATION STUDIO</div><section class="hero"><div><h1>AI 演示工作台</h1><p id="project-summary">从业务问题到可编辑演示</p></div><div class="hero-actions"><button id="undo" class="button secondary" disabled>撤销</button><button id="import-project" class="button secondary">导入项目</button><button id="save-project" class="button primary">保存项目 JSON</button></div></section>
-<div class="workspace-note"><span>浏览器本地工作区</span><span>本机保存与交接</span><span>AI 生成通过 Codex 执行</span><span id="cache-state">本地缓存待检查</span></div><div class="workspace-nav" role="tablist" aria-label="工作区"><button role="tab" id="tab-brief" aria-controls="workspace" data-tab="brief">项目简报</button><button role="tab" id="tab-workflow" aria-controls="workspace" data-tab="workflow">制作流程</button><button role="tab" id="tab-evidence" aria-controls="workspace" data-tab="evidence">数据与证据</button><button role="tab" id="tab-studio" aria-controls="workspace" data-tab="studio">逐页工作台</button><button role="tab" id="tab-delivery" aria-controls="workspace" data-tab="delivery">交付与 Codex</button></div>
-<div id="workspace" role="tabpanel"></div><div id="notice" role="status" aria-live="polite"></div><footer>项目可保存为 JSON 并重新导入。浏览器缓存不能替代文件备份。<a href="README.md" target="_blank" rel="noopener">完整使用说明</a></footer></main>
-<input id="project-file" type="file" accept="application/json,.json" hidden><input id="csv-file" type="file" accept="text/csv,.csv" hidden>
-<dialog id="review-dialog"><form method="dialog" id="review-form"><div class="section-heading"><h2>记录人工复核</h2><button class="icon-button" value="cancel" aria-label="关闭">×</button></div><p id="review-target"></p><p class="muted">请先对照原始证据核对数值、单位、时期和计算。这里记录人工声明，不会自动验证来源或复核人身份。</p><label>独立复核人<input name="reviewer" required maxlength="100"></label><label>证据定位与复算说明<textarea name="note" required rows="3" maxlength="1000"></textarea></label><p id="review-error" class="error" role="alert"></p><button id="confirm-review" type="button" class="button primary">保存本条复核记录</button></form></dialog>
-</body></html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="description" content="填写项目简报，上传初步PPT和照片，交给Codex制作交互式HTML演示。">
+  <title>AI 演示工作台 · IBG Food</title>
+  <link rel="stylesheet" href="styles.css">
+  <script type="module" src="app.mjs"></script>
+</head>
+<body>
+  <header class="topbar">
+    <a class="brand" href="#brief"><span class="brand-mark" aria-hidden="true">IBG</span><span>Food竞争分析中心</span></a>
+    <span class="nav-current">AI 演示</span>
+  </header>
+  <main>
+    <div class="breadcrumb">知识库 <span>›</span> AI 演示工作台</div>
+    <div class="kicker">IBG FOOD / PRESENTATION STUDIO</div>
+    <section class="hero">
+      <div><h1>让初稿成为可交互的演示</h1><p id="project-summary">填写简报、上传初稿，交给 Codex 渲染</p></div>
+      <div class="hero-actions">
+        <button id="undo" class="button secondary" disabled>撤销</button>
+        <button id="import-project" class="button secondary">导入项目</button>
+        <button id="save-project" class="button primary">保存项目与附件</button>
+      </div>
+    </section>
+    <div class="workspace-note"><span>浏览器本地工作区</span><span>初步 PPT + 项目简报 → 交互式 HTML</span><span id="cache-state">正在恢复本地项目…</span></div>
+    <div class="workspace-nav" role="tablist" aria-label="工作区">
+      <button role="tab" id="tab-brief" aria-controls="workspace" data-tab="brief">项目简报</button>
+      <button role="tab" id="tab-delivery" aria-controls="workspace" data-tab="delivery">交付给 Codex</button>
+    </div>
+    <div id="workspace" role="tabpanel"></div>
+    <div id="notice" role="status" aria-live="polite"></div>
+    <footer>简报与附件保存在当前浏览器，请另存项目 JSON 备份。<a href="README.md" target="_blank" rel="noopener">使用说明</a></footer>
+  </main>
+  <input id="project-file" type="file" accept="application/json,.json" hidden>
+  <input id="deck-files" type="file" accept=".pptx,.ppt,.pdf" multiple hidden>
+  <input id="photo-files" type="file" accept="image/png,image/jpeg,image/webp,image/gif,.png,.jpg,.jpeg,.webp,.gif" multiple hidden>
+</body>
+</html>
