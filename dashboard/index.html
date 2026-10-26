@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="description" content="填写项目简报，上传初步PPT和照片，交给Codex制作交互式HTML演示。">
+  <title>AI 演示工作台 · IBG Food</title>
+  <link rel="stylesheet" href="styles.css">
+  <script type="module" src="app.mjs"></script>
+</head>
+<body>
+  <header class="topbar">
+    <a class="brand" href="#brief"><span class="brand-mark" aria-hidden="true">IBG</span><span>Food竞争分析中心</span></a>
+    <span class="nav-current">AI 演示</span>
+  </header>
+  <main>
+    <div class="breadcrumb">知识库 <span>›</span> AI 演示工作台</div>
+    <div class="kicker">IBG FOOD / PRESENTATION STUDIO</div>
+    <section class="hero">
+      <div><h1>让初稿成为可交互的演示</h1><p id="project-summary">填写简报、上传初稿，交给 Codex 渲染</p></div>
+      <div class="hero-actions">
+        <button id="undo" class="button secondary" disabled>撤销</button>
+        <button id="import-project" class="button secondary">导入项目</button>
+        <button id="save-project" class="button primary">保存项目与附件</button>
+      </div>
+    </section>
+    <div class="workspace-note"><span>浏览器本地工作区</span><span>初步 PPT + 项目简报 → 交互式 HTML</span><span id="cache-state">正在恢复本地项目…</span></div>
+    <div class="workspace-nav" role="tablist" aria-label="工作区">
+      <button role="tab" id="tab-brief" aria-controls="workspace" data-tab="brief">项目简报</button>
+      <button role="tab" id="tab-delivery" aria-controls="workspace" data-tab="delivery">交付给 Codex</button>
+    </div>
+    <div id="workspace" role="tabpanel"></div>
+    <div id="notice" role="status" aria-live="polite"></div>
+    <footer>简报与附件保存在当前浏览器，请另存项目 JSON 备份。<a href="README.md" target="_blank" rel="noopener">使用说明</a></footer>
+  </main>
+  <input id="project-file" type="file" accept="application/json,.json" hidden>
+  <input id="deck-files" type="file" accept=".pptx,.ppt,.pdf" multiple hidden>
+  <input id="photo-files" type="file" accept="image/png,image/jpeg,image/webp,image/gif,.png,.jpg,.jpeg,.webp,.gif" multiple hidden>
+</body>
+</html>

@@ -1,0 +1,9 @@
+# Local project data and generated outputs are not application source.
+project.json
+codex-task.md
+*.csv
+*.pptx
+*.pdf
+presentation-draft.html
+exports/
+fancy-prompt.md
